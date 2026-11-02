@@ -38,6 +38,16 @@ namespace FEBuilderGBA
 
             if (textencoding == TextEncodingEnum.Auto)
             {//自動選択
+                // Chinese FE7/FE8 patches retain the Japanese ROM header and
+                // multibyte text layout, but replace the game's character set
+                // with the checked-in FE*.tbl table.  Prefer that table when it
+                // is available; SystemTextEncoderTBLEncode still falls back to
+                // Shift-JIS for characters absent from the patch table, so
+                // ordinary Japanese ROMs remain readable as well.
+                if (rom != null && TryLoadChineseTable(rom))
+                {
+                    return;
+                }
                 PatchDetection.PRIORITY_CODE priorityCode = PatchDetection.SearchPriorityCode(rom);
                 if (priorityCode == PatchDetection.PRIORITY_CODE.UTF8)
                 {
@@ -67,6 +77,27 @@ namespace FEBuilderGBA
             }
 
             this.TBLEncode = null;
+        }
+
+        bool TryLoadChineseTable(ROM rom)
+        {
+            if (rom?.RomInfo == null || !rom.RomInfo.is_multibyte)
+            {
+                return false;
+            }
+
+            string filename = System.IO.Path.Combine(
+                CoreState.BaseDirectory ?? string.Empty,
+                "config", "translate", "zh_tbl",
+                rom.RomInfo.TitleToFilename + ".tbl");
+            if (!File.Exists(filename))
+            {
+                return false;
+            }
+
+            this.TBLEncode = new SystemTextEncoderTBLEncode(filename);
+            this.Encoder = null;
+            return true;
         }
         bool LoadTBL(TextEncodingEnum textencoding, ROM rom)
         {

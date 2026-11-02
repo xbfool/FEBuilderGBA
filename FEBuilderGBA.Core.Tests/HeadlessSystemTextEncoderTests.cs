@@ -1,5 +1,6 @@
 using Xunit;
 using FEBuilderGBA;
+using System.IO;
 
 namespace FEBuilderGBA.Core.Tests
 {
@@ -137,6 +138,26 @@ namespace FEBuilderGBA.Core.Tests
         }
 
         [Fact]
+        public void ChineseTable_DecodesMappedBytePair()
+        {
+            string root = FindSolutionRoot();
+            string table = Path.Combine(root, "config", "translate", "zh_tbl", "FE8.tbl");
+            Assert.True(File.Exists(table), $"missing test table: {table}");
+
+            var encoder = new SystemTextEncoderTBLEncode(table);
+            // FE8.tbl stores 839e in table notation; ROM bytes are 83 9e.
+            Assert.Equal("啰", encoder.Decode(new byte[] { 0x83, 0x9E }));
+        }
+
+        [Fact]
+        public void SystemTextEncoder_Auto_OffersChineseTableFallback()
+        {
+            string src = File.ReadAllText(FindCoreFile("SystemTextEncoder.cs"));
+            Assert.Contains("TryLoadChineseTable", src);
+            Assert.Contains("zh_tbl", src);
+        }
+
+        [Fact]
         public void HeadlessSystemTextEncoder_HasRomConstructor()
         {
             var src = File.ReadAllText(FindCoreFile("HeadlessSystemTextEncoder.cs"));
@@ -154,11 +175,17 @@ namespace FEBuilderGBA.Core.Tests
 
         static string FindCoreFile(string filename)
         {
+            var dir = FindSolutionRoot();
+            return Path.Combine(dir, "FEBuilderGBA.Core", filename);
+        }
+
+        static string FindSolutionRoot()
+        {
             var dir = AppContext.BaseDirectory;
             while (dir != null && !File.Exists(Path.Combine(dir, "FEBuilderGBA.sln")))
                 dir = Path.GetDirectoryName(dir);
             if (dir == null) throw new InvalidOperationException("Cannot find solution root");
-            return Path.Combine(dir, "FEBuilderGBA.Core", filename);
+            return dir;
         }
     }
 }
