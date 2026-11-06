@@ -657,6 +657,7 @@ namespace FEBuilderGBA
         {
             g_RepalceSPCode = new List<string>();
             g_RepalceSPCode.Add("\r\n"); g_RepalceSPCode.Add("@0001");
+            g_RepalceSPCode.Add("\n"); g_RepalceSPCode.Add("@0001");
             if (CoreState.ROM.RomInfo.is_multibyte)
             {
                 if (CoreState.ROM.RomInfo.version == 8)
